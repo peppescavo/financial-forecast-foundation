@@ -8,7 +8,11 @@ import math
 from src.config import FINANCIAL_FIELDS, SUBMISSION_STATIC_FIELDS
 from src.edgar_client import fetch_company_submissions_and_facts, normalize_cik
 from src.utils import parse_date
-from src.xbrl_parser import extract_latest_annual_value_and_end_date
+from src.xbrl_parser import (
+    extract_latest_annual_value_and_end_date,
+    get_all_period_ends,
+    get_values_for_period,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,3 +69,43 @@ def build_company_financials(
             record[field] = math.nan
 
     return record
+
+
+def build_company_financials_timeseries(
+    cik: str, ticker: str | None = None
+) -> list[dict[str, str | float]]:
+    """Build one record per period for a company: full time series (10-K annual + 10-Q quarterly)."""
+    normalized_cik = normalize_cik(cik)
+    normalized_ticker = ticker.strip().upper() if ticker else math.nan
+    static: dict[str, str | float] = {
+        "cik": normalized_cik,
+        "ticker": normalized_ticker,
+        **{k: "" for k in SUBMISSION_STATIC_FIELDS},
+    }
+
+    try:
+        submissions, facts = fetch_company_submissions_and_facts(normalized_cik)
+        for key, value in _parse_submissions_static(submissions).items():
+            static[key] = value
+
+        period_ends = get_all_period_ends(facts, FINANCIAL_FIELDS)
+        if not period_ends:
+            return []
+
+        records = []
+        for period_end in period_ends:
+            values = get_values_for_period(facts, period_end, FINANCIAL_FIELDS)
+            row = {
+                **static,
+                "as_of_date": period_end,
+                **values,
+            }
+            records.append(row)
+        return records
+    except Exception:
+        logger.exception(
+            "Failed to build financials timeseries for cik=%s ticker=%s",
+            normalized_cik,
+            normalized_ticker,
+        )
+        return []
