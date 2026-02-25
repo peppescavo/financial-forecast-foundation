@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 from tqdm import tqdm
@@ -12,6 +13,8 @@ from src.config import (
     PROCESSED_FINANCIALS_PATH,
     PROCESSED_FINANCIALS_SAMPLE_PATH,
     SAMPLE_MAX_ROWS,
+    SEC_FETCH_MAX_WORKERS,
+    SUBMISSION_STATIC_FIELDS,
 )
 from src.edgar_client import normalize_cik
 from src.financials import build_company_financials
@@ -33,22 +36,50 @@ def build_financials_dataframe(
         else {}
     )
 
-    records = [
-        build_company_financials(cik, ticker=normalized_lookup.get(cik))
-        for cik in tqdm(
-            selected_ciks,
+    max_workers = SEC_FETCH_MAX_WORKERS
+    records = [None] * len(selected_ciks)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_idx = {
+            executor.submit(
+                build_company_financials,
+                cik,
+                ticker=normalized_lookup.get(cik),
+            ): i
+            for i, cik in enumerate(selected_ciks)
+        }
+        for future in tqdm(
+            as_completed(future_to_idx),
+            total=len(future_to_idx),
             desc="Fetching SEC financials",
             unit="company",
-        )
-    ]
+        ):
+            idx = future_to_idx[future]
+            records[idx] = future.result()
+    # Preserve order; failed companies still return a record (with NaN financials)
+    assert all(r is not None for r in records), "unexpected missing record"
 
     if records:
         df = pd.DataFrame.from_records(records)
     else:
-        df = pd.DataFrame(columns=["cik", "ticker", "as_of_date", *FINANCIAL_FIELDS])
+        df = pd.DataFrame(
+            columns=[
+                "cik",
+                "ticker",
+                "as_of_date",
+                *SUBMISSION_STATIC_FIELDS,
+                *FINANCIAL_FIELDS,
+            ]
+        )
 
     df = df.set_index("cik").reindex(selected_ciks)
-    df = df.reindex(columns=["ticker", "as_of_date", *FINANCIAL_FIELDS])
+    df = df.reindex(
+        columns=[
+            "ticker",
+            "as_of_date",
+            *SUBMISSION_STATIC_FIELDS,
+            *FINANCIAL_FIELDS,
+        ]
+    )
     df["as_of_date"] = pd.to_datetime(df["as_of_date"], errors="coerce")
     df[FINANCIAL_FIELDS] = df[FINANCIAL_FIELDS].apply(pd.to_numeric, errors="coerce")
 

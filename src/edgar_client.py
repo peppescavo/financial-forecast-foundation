@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import threading
 import time
+from collections import deque
 from functools import lru_cache
 
 import requests
 
 from src import config
 
-_LAST_REQUEST_TS = 0.0
+_lock = threading.Lock()
+_request_times: deque[float] = deque()
 
 
 def _format_cik(cik: str) -> str:
@@ -21,20 +24,27 @@ def _format_cik(cik: str) -> str:
 
 
 def _sec_get(url: str) -> dict:
-    """Perform a rate-limited GET request against SEC endpoints."""
-    global _LAST_REQUEST_TS
-
-    elapsed = time.monotonic() - _LAST_REQUEST_TS
-    sleep_for = config.SEC_REQUEST_SLEEP_SECONDS - elapsed
-    if sleep_for > 0:
-        time.sleep(sleep_for)
+    """Perform a rate-limited GET request against SEC endpoints (thread-safe)."""
+    max_rps = getattr(config, "SEC_MAX_REQUESTS_PER_SECOND", 10)
+    with _lock:
+        now = time.monotonic()
+        while _request_times and _request_times[0] < now - 1.0:
+            _request_times.popleft()
+        while len(_request_times) >= max_rps:
+            # wait until oldest request is older than 1 second
+            sleep_for = 1.0 - (now - _request_times[0])
+            if sleep_for > 0:
+                time.sleep(sleep_for)
+            now = time.monotonic()
+            while _request_times and _request_times[0] < now - 1.0:
+                _request_times.popleft()
+        _request_times.append(time.monotonic())
 
     response = requests.get(
         url,
         headers=config.SEC_HEADERS,
         timeout=config.SEC_TIMEOUT_SECONDS,
     )
-    _LAST_REQUEST_TS = time.monotonic()
     response.raise_for_status()
     return response.json()
 
@@ -71,11 +81,23 @@ def fetch_cik_universe_with_tickers() -> list[tuple[str, str]]:
     return sorted(cik_to_ticker.items(), key=lambda item: item[0])
 
 
+def fetch_company_submissions(cik: str) -> dict:
+    """Fetch company submissions JSON (metadata: industry, location, etc.) for the provided CIK."""
+    cik_padded = _format_cik(cik)
+    url = config.SEC_SUBMISSIONS_URL.format(cik=cik_padded)
+    return _sec_get(url)
+
+
+def fetch_company_submissions_and_facts(cik: str) -> tuple[dict, dict]:
+    """Fetch both submissions (metadata) and company facts (XBRL) for the provided CIK. Two requests."""
+    submissions = fetch_company_submissions(cik)
+    cik_padded = _format_cik(cik)
+    company_facts_url = config.SEC_COMPANY_FACTS_URL.format(cik=cik_padded)
+    facts = _sec_get(company_facts_url)
+    return submissions, facts
+
+
 def fetch_company_facts(cik: str) -> dict:
     """Fetch company XBRL facts JSON for the provided CIK."""
-    cik_padded = _format_cik(cik)
-    submissions_url = config.SEC_SUBMISSIONS_URL.format(cik=cik_padded)
-    company_facts_url = config.SEC_COMPANY_FACTS_URL.format(cik=cik_padded)
-
-    _sec_get(submissions_url)
-    return _sec_get(company_facts_url)
+    _, facts = fetch_company_submissions_and_facts(cik)
+    return facts
