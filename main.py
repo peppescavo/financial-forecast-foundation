@@ -10,20 +10,26 @@ from src.config import (
     PROCESSED_FINANCIALS_SAMPLE_PATH,
     SAMPLE_MAX_ROWS,
 )
-from src.edgar_client import fetch_ticker_universe
+from src.edgar_client import fetch_cik_universe_with_tickers
 from src.pipeline import build_financials_dataframe
 from src.utils import configure_logging, initialize_environment
 
 
 def main() -> None:
-    """Run the financials pipeline with a default ticker universe."""
+    """Run the financials pipeline with a default CIK universe."""
     configure_logging()
     initialize_environment()
 
     max_companies = DEFAULT_MAX_COMPANIES
-    tickers = fetch_ticker_universe()
+    companies = fetch_cik_universe_with_tickers()
+    ciks = [cik for cik, _ in companies]
+    ticker_lookup = {cik: ticker for cik, ticker in companies}
 
-    dataframe = build_financials_dataframe(tickers=tickers, max_companies=max_companies)
+    dataframe = build_financials_dataframe(
+        ciks=ciks,
+        max_companies=max_companies,
+        ticker_lookup=ticker_lookup,
+    )
 
     logger = logging.getLogger(__name__)
     logger.info("Built financials dataframe with shape=%s", dataframe.shape)

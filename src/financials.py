@@ -6,24 +6,38 @@ import logging
 import math
 
 from src.config import FINANCIAL_FIELDS
-from src.edgar_client import fetch_company_facts, ticker_to_cik
-from src.xbrl_parser import extract_latest_annual_value
+from src.edgar_client import fetch_company_facts, normalize_cik
+from src.utils import parse_date
+from src.xbrl_parser import extract_latest_annual_value_and_end_date
 
 logger = logging.getLogger(__name__)
 
 
-def build_company_financials(ticker: str) -> dict[str, str | float]:
+def build_company_financials(cik: str, ticker: str | None = None) -> dict[str, str | float]:
     """Build a single counterparty financial record for the latest annual period."""
-    normalized = ticker.strip().upper()
-    record: dict[str, str | float] = {"ticker": normalized}
+    normalized_cik = normalize_cik(cik)
+    normalized_ticker = ticker.strip().upper() if ticker else math.nan
+    record: dict[str, str | float] = {
+        "cik": normalized_cik,
+        "ticker": normalized_ticker,
+        "as_of_date": math.nan,
+    }
 
     try:
-        cik = ticker_to_cik(normalized)
-        facts = fetch_company_facts(cik)
+        facts = fetch_company_facts(normalized_cik)
+        latest_period_end: str | None = None
         for field in FINANCIAL_FIELDS:
-            record[field] = extract_latest_annual_value(facts, field)
+            value, period_end = extract_latest_annual_value_and_end_date(facts, field)
+            record[field] = value
+            if period_end and parse_date(period_end) > parse_date(latest_period_end):
+                latest_period_end = period_end
+        record["as_of_date"] = latest_period_end if latest_period_end else math.nan
     except Exception:
-        logger.exception("Failed to build financials for ticker=%s", normalized)
+        logger.exception(
+            "Failed to build financials for cik=%s ticker=%s",
+            normalized_cik,
+            normalized_ticker,
+        )
         for field in FINANCIAL_FIELDS:
             record[field] = math.nan
 

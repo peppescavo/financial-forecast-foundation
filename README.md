@@ -2,7 +2,7 @@
 
 ## Project Description
 
-This project downloads financial statement data from official SEC EDGAR JSON APIs and builds a standardized pandas DataFrame that can be used as a foundation layer for macro time-series forecasting and risk modeling. Each row represents one counterparty ticker and each column represents a selected `us-gaap` field using the most recent annual (`10-K`) value.
+This project downloads financial statement data from official SEC EDGAR JSON APIs and builds a standardized pandas DataFrame that can be used as a foundation layer for macro time-series forecasting and risk modeling. Each row represents one company identified by CIK, and each column represents a selected `us-gaap` field using the most recent annual (`10-K`) value. The output includes an `as_of_date` column with the latest annual period-end date available for each company.
 
 The pipeline also persists the modeling-ready output to:
 
@@ -71,15 +71,22 @@ python main.py
 ```python
 from src.pipeline import build_financials_dataframe
 
-tickers = ["AAPL", "MSFT", "JPM", "XOM", "WMT"]
-df = build_financials_dataframe(tickers=tickers, max_companies=3)
+ciks = ["0000320193", "0000789019", "0000019617"]
+ticker_lookup = {
+    "0000320193": "AAPL",
+    "0000789019": "MSFT",
+    "0000019617": "JPM",
+}
+df = build_financials_dataframe(ciks=ciks, max_companies=3, ticker_lookup=ticker_lookup)
 ```
 
 ## Example Output Structure
 
 ```text
-index: ticker
+index: cik
 columns:
+- ticker
+- as_of_date
 - Revenues
 - NetIncomeLoss
 - Assets
@@ -97,10 +104,10 @@ Values are numeric, missing data remains `NaN`, and the DataFrame is directly us
 ## Architecture
 
 - `src/config.py`: constants, SEC endpoints, headers, field list, path definitions.
-- `src/edgar_client.py`: ticker-to-CIK resolution and SEC API retrieval with rate limiting.
+- `src/edgar_client.py`: SEC CIK/ticker universe helpers and SEC API retrieval with rate limiting.
 - `src/xbrl_parser.py`: extraction of most recent annual `10-K` values from `companyfacts`.
-- `src/financials.py`: single-company financial record assembly.
-- `src/pipeline.py`: multi-ticker orchestration, DataFrame construction, numeric coercion, parquet persistence, and Excel sample snapshot export.
+- `src/financials.py`: single-company financial record assembly keyed by CIK.
+- `src/pipeline.py`: multi-company orchestration, DataFrame construction, numeric coercion, parquet persistence, and Excel sample snapshot export.
 - `src/utils.py`: logging setup, environment loading, and filesystem helpers.
 - `main.py`: minimal orchestration entrypoint.
 - `tests/test_pipeline.py`: minimal real pytest coverage for pipeline output shape.

@@ -58,9 +58,17 @@ def ticker_to_cik(ticker: str) -> str:
     return cik
 
 
-def fetch_ticker_universe() -> list[str]:
-    """Fetch the full SEC ticker universe sorted alphabetically."""
-    return sorted(_ticker_map().keys())
+def normalize_cik(cik: str) -> str:
+    """Normalize a raw CIK value into the SEC 10-digit format."""
+    return _format_cik(cik)
+
+
+def fetch_cik_universe_with_tickers() -> list[tuple[str, str]]:
+    """Fetch unique CIKs with one representative ticker per company."""
+    cik_to_ticker: dict[str, str] = {}
+    for ticker, cik in _ticker_map().items():
+        cik_to_ticker.setdefault(cik, ticker)
+    return sorted(cik_to_ticker.items(), key=lambda item: item[0])
 
 
 def fetch_company_facts(cik: str) -> dict:
