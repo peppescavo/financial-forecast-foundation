@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "financial-forecast-foundation"
+version = "0.1.0"
+description = "Financial data foundation for macro time-series forecasting workflows."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas",
+  "requests",
+  "pyarrow",
+  "tqdm",
+  "python-dotenv",
+  "openpyxl",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
