@@ -14,6 +14,9 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 PROCESSED_FINANCIALS_PATH = PROCESSED_DATA_DIR / "financials.parquet"
+PROCESSED_FINANCIALS_TIMESERIES_PATH = (
+    PROCESSED_DATA_DIR / "financials_timeseries.parquet"
+)
 SAMPLE_MAX_ROWS = 100
 PROCESSED_FINANCIALS_SAMPLE_PATH = (
     PROCESSED_DATA_DIR / f"financials_sample_max_{SAMPLE_MAX_ROWS}.xlsx"
@@ -24,7 +27,9 @@ SEC_COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.jso
 SEC_TICKER_MAPPING_URL = "https://www.sec.gov/files/company_tickers.json"
 
 SEC_TIMEOUT_SECONDS = 30
-SEC_REQUEST_SLEEP_SECONDS = 0.2
+# SEC allows 10 requests/second; rate limiter used when fetching in parallel
+SEC_MAX_REQUESTS_PER_SECOND = 10
+SEC_FETCH_MAX_WORKERS = 6  # parallel company fetches (each company = 2 requests)
 DEFAULT_MAX_COMPANIES = 100
 
 SEC_USER_AGENT = os.getenv(
@@ -49,3 +54,6 @@ FINANCIAL_FIELDS = [
     "CashAndCashEquivalentsAtCarryingValue",
     "LongTermDebt",
 ]
+
+# Static company metadata from SEC submissions (name, industry, region only)
+SUBMISSION_STATIC_FIELDS = ["company_name", "industry", "region"]
