@@ -100,7 +100,7 @@ python main.py
 
 - SEC snapshot dataset (`financials.parquet`) + sample Excel
 - SEC time-series dataset (`financials_timeseries.parquet`)
-- FRED macro time-series datasets (`macro_timeseries_long.xlsx`, `macro_timeseries_wide.xlsx`)
+- FRED macro time-series dataset (`macro_timeseries_wide.xlsx`)
 
 ## Example Usage
 
@@ -189,7 +189,7 @@ Financial values are numeric, missing data remains `NaN`, and `as_of_date` is pa
 - `src/xbrl_parser.py`: extraction of latest annual values plus period/value utilities for 10-K/10-Q time-series assembly.
 - `src/financials.py`: single-company snapshot record and multi-period time-series record builders.
 - `src/pipeline.py`: parallel multi-company orchestration, snapshot/time-series DataFrame construction, type coercion, parquet persistence, and snapshot Excel export.
-- `src/macro_pipeline.py`: FRED macro series download + Excel persistence (long + wide).
+- `src/macro_pipeline.py`: FRED macro series download + Excel persistence (wide).
 - `src/utils.py`: logging setup, environment loading, and filesystem helpers.
 - `main.py`: orchestration entrypoint that runs both pipelines.
 - `tests/test_pipeline.py`: pytest coverage for snapshot and time-series pipeline shapes and persistence.

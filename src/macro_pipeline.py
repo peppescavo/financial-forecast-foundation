@@ -118,7 +118,7 @@ def build_and_persist_macro_timeseries(
     observation_start: str | None = None,
     observation_end: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Download macro series from FRED and persist both long and wide Excel outputs."""
+    """Download macro series from FRED and persist the wide Excel output."""
     long_df = build_macro_timeseries_long_dataframe(
         series_ids=series_ids,
         observation_start=observation_start,
@@ -126,21 +126,20 @@ def build_and_persist_macro_timeseries(
     )
     wide_df = build_macro_timeseries_wide_dataframe(long_df)
 
-    if long_df.empty:
+    if wide_df.empty:
         return long_df, wide_df
 
-    ensure_directory(config.PROCESSED_MACRO_LONG_PATH.parent)
-    long_df.to_excel(
-        config.PROCESSED_MACRO_LONG_PATH,
-        engine="openpyxl",
-        index=False,
-    )
-    wide_df.reset_index().to_excel(
+    ensure_directory(config.PROCESSED_MACRO_WIDE_PATH.parent)
+    wide_out_df = wide_df.reset_index()
+    if "date" in wide_out_df.columns:
+        wide_out_df["date"] = pd.to_datetime(
+            wide_out_df["date"], errors="coerce"
+        ).dt.date
+    wide_out_df.to_excel(
         config.PROCESSED_MACRO_WIDE_PATH,
         engine="openpyxl",
         index=False,
     )
 
-    logger.info("Saved macro long to %s", config.PROCESSED_MACRO_LONG_PATH)
     logger.info("Saved macro wide to %s", config.PROCESSED_MACRO_WIDE_PATH)
     return long_df, wide_df
