@@ -132,14 +132,20 @@ def build_and_persist_macro_timeseries(
     ensure_directory(config.PROCESSED_MACRO_WIDE_PATH.parent)
     wide_out_df = wide_df.reset_index()
     if "date" in wide_out_df.columns:
-        wide_out_df["date"] = pd.to_datetime(
-            wide_out_df["date"], errors="coerce"
-        ).dt.date
-    wide_out_df.to_excel(
+        wide_out_df["date"] = pd.to_datetime(wide_out_df["date"], errors="coerce")
+    with pd.ExcelWriter(
         config.PROCESSED_MACRO_WIDE_PATH,
         engine="openpyxl",
-        index=False,
-    )
+    ) as writer:
+        wide_out_df.to_excel(writer, index=False, sheet_name="macro")
+        if "date" in wide_out_df.columns:
+            from openpyxl.utils import get_column_letter
+
+            date_col_idx = wide_out_df.columns.get_loc("date") + 1
+            date_col_letter = get_column_letter(date_col_idx)
+            ws = writer.book["macro"]
+            for row in range(2, ws.max_row + 1):
+                ws[f"{date_col_letter}{row}"].number_format = "yyyy-mm-dd"
 
     logger.info("Saved macro wide to %s", config.PROCESSED_MACRO_WIDE_PATH)
     return long_df, wide_df
