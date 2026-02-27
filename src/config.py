@@ -17,7 +17,7 @@ PROCESSED_FINANCIALS_PATH = PROCESSED_DATA_DIR / "financials.parquet"
 PROCESSED_FINANCIALS_TIMESERIES_PATH = (
     PROCESSED_DATA_DIR / "financials_timeseries.parquet"
 )
-SAMPLE_MAX_ROWS = 100
+SAMPLE_MAX_ROWS = 1000
 PROCESSED_FINANCIALS_SAMPLE_PATH = (
     PROCESSED_DATA_DIR / f"financials_sample_max_{SAMPLE_MAX_ROWS}.xlsx"
 )
@@ -30,7 +30,7 @@ SEC_TIMEOUT_SECONDS = 30
 # SEC allows 10 requests/second; rate limiter used when fetching in parallel
 SEC_MAX_REQUESTS_PER_SECOND = 10
 SEC_FETCH_MAX_WORKERS = 6  # parallel company fetches (each company = 2 requests)
-DEFAULT_MAX_COMPANIES = 100
+DEFAULT_MAX_COMPANIES = 1000
 
 SEC_USER_AGENT = os.getenv(
     "SEC_USER_AGENT",

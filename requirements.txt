@@ -5,3 +5,5 @@ tqdm
 python-dotenv
 pytest
 openpyxl
+matplotlib
+seaborn
