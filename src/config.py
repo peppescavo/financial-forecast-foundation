@@ -23,8 +23,8 @@ PROCESSED_FINANCIALS_SAMPLE_PATH = (
 )
 
 # Macroeconomic data (FRED)
-PROCESSED_MACRO_LONG_PATH = PROCESSED_DATA_DIR / "macro_timeseries_long.parquet"
-PROCESSED_MACRO_WIDE_PATH = PROCESSED_DATA_DIR / "macro_timeseries_wide.parquet"
+PROCESSED_MACRO_LONG_PATH = PROCESSED_DATA_DIR / "macro_timeseries_long.xlsx"
+PROCESSED_MACRO_WIDE_PATH = PROCESSED_DATA_DIR / "macro_timeseries_wide.xlsx"
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"

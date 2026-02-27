@@ -118,7 +118,7 @@ def build_and_persist_macro_timeseries(
     observation_start: str | None = None,
     observation_end: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Download macro series from FRED and persist both long and wide parquet outputs."""
+    """Download macro series from FRED and persist both long and wide Excel outputs."""
     long_df = build_macro_timeseries_long_dataframe(
         series_ids=series_ids,
         observation_start=observation_start,
@@ -130,8 +130,16 @@ def build_and_persist_macro_timeseries(
         return long_df, wide_df
 
     ensure_directory(config.PROCESSED_MACRO_LONG_PATH.parent)
-    long_df.to_parquet(config.PROCESSED_MACRO_LONG_PATH, engine="pyarrow")
-    wide_df.to_parquet(config.PROCESSED_MACRO_WIDE_PATH, engine="pyarrow")
+    long_df.to_excel(
+        config.PROCESSED_MACRO_LONG_PATH,
+        engine="openpyxl",
+        index=False,
+    )
+    wide_df.reset_index().to_excel(
+        config.PROCESSED_MACRO_WIDE_PATH,
+        engine="openpyxl",
+        index=False,
+    )
 
     logger.info("Saved macro long to %s", config.PROCESSED_MACRO_LONG_PATH)
     logger.info("Saved macro wide to %s", config.PROCESSED_MACRO_WIDE_PATH)
