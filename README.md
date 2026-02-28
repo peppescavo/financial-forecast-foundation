@@ -6,8 +6,8 @@ This project downloads financial statement data from official SEC EDGAR JSON API
 
 The current pipeline builds two outputs:
 
-- **Snapshot dataset** (`financials.parquet`): one row per company (CIK), with latest annual (`10-K`) values.
-- **Time-series dataset** (`financials_timeseries.parquet`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings.
+- **Snapshot dataset** (`financials_<YYYY-MM-DD>.parquet`): one row per company (CIK), with latest annual (`10-K`) values up to the reference date.
+- **Time-series dataset** (`financials_timeseries_<YYYY-MM-DD>.parquet`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings up to the reference date.
 
 Both datasets include:
 
@@ -17,9 +17,9 @@ Both datasets include:
 
 The pipeline persists:
 
-- `data/processed/financials.parquet`
-- `data/processed/financials_sample_max_100.xlsx` (snapshot sample, max 100 rows)
-- `data/processed/financials_timeseries.parquet`
+- `data/processed/financials_<YYYY-MM-DD>.parquet`
+- `data/processed/financials_sample_max_<N>_<YYYY-MM-DD>.xlsx` (snapshot sample)
+- `data/processed/financials_timeseries_<YYYY-MM-DD>.parquet`
 
 ## Installation
 
@@ -98,9 +98,9 @@ python main.py
 
 `main.py` builds and saves:
 
-- SEC snapshot dataset (`financials.parquet`) + sample Excel
-- SEC time-series dataset (`financials_timeseries.parquet`)
-- FRED macro time-series dataset (`macro_timeseries_wide.xlsx`)
+- SEC snapshot dataset (`financials_<YYYY-MM-DD>.parquet`) + sample Excel
+- SEC time-series dataset (`financials_timeseries_<YYYY-MM-DD>.parquet`)
+- FRED macro time-series dataset (`macro_timeseries_wide_<YYYY-MM-DD>.xlsx`)
 
 ## Example Usage
 
@@ -174,6 +174,15 @@ columns:
 ```
 
 Financial values are numeric, missing data remains `NaN`, and `as_of_date` is parsed to datetime.
+
+## Reference Date Cutoff
+
+You can optionally set a global cutoff date (applied to both SEC financials and FRED macro series):
+
+- `.env`: `REFERENCE_DATE="YYYY-MM-DD"`
+- `src/config.py`: set `REFERENCE_DATE = "YYYY-MM-DD"`
+
+If `REFERENCE_DATE` is unset, the pipeline collects up to today and output filenames are suffixed with today’s date.
 
 ## Runtime Behavior
 

@@ -30,7 +30,9 @@ def _parse_submissions_static(submissions: dict) -> dict[str, str | float]:
 
 
 def build_company_financials(
-    cik: str, ticker: str | None = None
+    cik: str,
+    ticker: str | None = None,
+    reference_date: str | None = None,
 ) -> dict[str, str | float]:
     """Build a single counterparty financial record for the latest annual period."""
     normalized_cik = normalize_cik(cik)
@@ -52,7 +54,9 @@ def build_company_financials(
 
         latest_period_end: str | None = None
         for field in FINANCIAL_FIELDS:
-            value, period_end = extract_latest_annual_value_and_end_date(facts, field)
+            value, period_end = extract_latest_annual_value_and_end_date(
+                facts, field, reference_date=reference_date
+            )
             record[field] = value
             if period_end and parse_date(period_end) > parse_date(
                 latest_period_end or ""
@@ -72,7 +76,9 @@ def build_company_financials(
 
 
 def build_company_financials_timeseries(
-    cik: str, ticker: str | None = None
+    cik: str,
+    ticker: str | None = None,
+    reference_date: str | None = None,
 ) -> list[dict[str, str | float]]:
     """Build one record per period for a company: full time series (10-K annual + 10-Q quarterly)."""
     normalized_cik = normalize_cik(cik)
@@ -91,6 +97,16 @@ def build_company_financials_timeseries(
         period_ends = get_all_period_ends(facts, FINANCIAL_FIELDS)
         if not period_ends:
             return []
+
+        if reference_date:
+            cutoff = parse_date(reference_date)
+            period_ends = [
+                period_end
+                for period_end in period_ends
+                if parse_date(period_end) <= cutoff
+            ]
+            if not period_ends:
+                return []
 
         records = []
         for period_end in period_ends:
