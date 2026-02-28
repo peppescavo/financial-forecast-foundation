@@ -59,7 +59,9 @@ def build_macro_timeseries_long_dataframe(
     selected_series_ids = series_ids or list(config.FRED_DEFAULT_SERIES.keys())
     start = observation_start or config.FRED_OBSERVATION_START
     end = (
-        observation_end if observation_end is not None else config.FRED_OBSERVATION_END
+        observation_end
+        if observation_end is not None
+        else config.EFFECTIVE_REFERENCE_DATE_STR
     )
     end = end or None
 

@@ -7,6 +7,7 @@ import os
 
 from src.config import (
     DEFAULT_MAX_COMPANIES,
+    EFFECTIVE_REFERENCE_DATE_STR,
     PROCESSED_FINANCIALS_PATH,
     PROCESSED_FINANCIALS_SAMPLE_PATH,
     PROCESSED_FINANCIALS_TIMESERIES_PATH,
@@ -32,6 +33,7 @@ def main() -> None:
     initialize_environment()
 
     logger = logging.getLogger(__name__)
+    logger.info("Using reference date cutoff=%s", EFFECTIVE_REFERENCE_DATE_STR)
     refresh_financials = _truthy_env("REFRESH_FINANCIALS")
     needs_snapshot = refresh_financials or not PROCESSED_FINANCIALS_PATH.exists()
     needs_timeseries = (

@@ -3,27 +3,58 @@
 from __future__ import annotations
 
 import os
+from datetime import date, datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _parse_iso_date(value: str | None) -> date | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value).date()
+    except ValueError:
+        return None
+
+
+# Optional reference date (YYYY-MM-DD). If unset, pipelines collect up to today.
+# You can set it here or via the environment variable REFERENCE_DATE.
+REFERENCE_DATE: str | None = "2026-01-31"
+_reference_date_env = os.getenv("REFERENCE_DATE", "").strip()
+if _reference_date_env:
+    REFERENCE_DATE = _reference_date_env
+
+_today = date.today()
+_reference_date_value = _parse_iso_date(REFERENCE_DATE)
+if _reference_date_value and _reference_date_value > _today:
+    _reference_date_value = _today
+
+EFFECTIVE_REFERENCE_DATE = _reference_date_value or _today
+EFFECTIVE_REFERENCE_DATE_STR = EFFECTIVE_REFERENCE_DATE.isoformat()
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
-PROCESSED_FINANCIALS_PATH = PROCESSED_DATA_DIR / "financials.parquet"
+PROCESSED_FINANCIALS_PATH = (
+    PROCESSED_DATA_DIR / f"financials_{EFFECTIVE_REFERENCE_DATE_STR}.parquet"
+)
 PROCESSED_FINANCIALS_TIMESERIES_PATH = (
-    PROCESSED_DATA_DIR / "financials_timeseries.parquet"
+    PROCESSED_DATA_DIR / f"financials_timeseries_{EFFECTIVE_REFERENCE_DATE_STR}.parquet"
 )
 SAMPLE_MAX_ROWS = 1000
 PROCESSED_FINANCIALS_SAMPLE_PATH = (
-    PROCESSED_DATA_DIR / f"financials_sample_max_{SAMPLE_MAX_ROWS}.xlsx"
+    PROCESSED_DATA_DIR
+    / f"financials_sample_max_{SAMPLE_MAX_ROWS}_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
 )
 
 # Macroeconomic data (FRED)
-PROCESSED_MACRO_WIDE_PATH = PROCESSED_DATA_DIR / "macro_timeseries_wide.xlsx"
+PROCESSED_MACRO_WIDE_PATH = (
+    PROCESSED_DATA_DIR / f"macro_timeseries_wide_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
+)
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
