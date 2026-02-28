@@ -5,12 +5,15 @@ from __future__ import annotations
 import logging
 import os
 
+import pandas as pd
+
 from src.config import (
     DEFAULT_MAX_COMPANIES,
     EFFECTIVE_REFERENCE_DATE_STR,
     PROCESSED_FINANCIALS_PATH,
     PROCESSED_FINANCIALS_SAMPLE_PATH,
     PROCESSED_FINANCIALS_TIMESERIES_PATH,
+    PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
     PROCESSED_MACRO_WIDE_PATH,
     SAMPLE_MAX_ROWS,
 )
@@ -18,7 +21,9 @@ from src.edgar_client import fetch_cik_universe_with_tickers
 from src.macro_pipeline import build_and_persist_macro_timeseries
 from src.pipeline import (
     build_financials_dataframe,
+    build_financials_timeseries_delta_dataframe,
     build_financials_timeseries_dataframe,
+    persist_financials_timeseries_delta_dataframe,
 )
 from src.utils import configure_logging, initialize_environment
 
@@ -40,6 +45,7 @@ def main() -> None:
         refresh_financials or not PROCESSED_FINANCIALS_TIMESERIES_PATH.exists()
     )
 
+    ts_dataframe: pd.DataFrame | None = None
     if needs_snapshot or needs_timeseries:
         max_companies = DEFAULT_MAX_COMPANIES
         companies = fetch_cik_universe_with_tickers()
@@ -83,6 +89,30 @@ def main() -> None:
     else:
         logger.info(
             "Financials outputs already exist; skipping SEC download (set REFRESH_FINANCIALS=1 to rebuild)."
+        )
+
+    if ts_dataframe is None:
+        if not PROCESSED_FINANCIALS_TIMESERIES_PATH.exists():
+            logger.warning(
+                "Timeseries file not found at %s; skipping delta build.",
+                PROCESSED_FINANCIALS_TIMESERIES_PATH,
+            )
+        else:
+            logger.info(
+                "Loading existing timeseries from %s to build delta.",
+                PROCESSED_FINANCIALS_TIMESERIES_PATH,
+            )
+            ts_dataframe = pd.read_excel(
+                PROCESSED_FINANCIALS_TIMESERIES_PATH,
+                sheet_name="timeseries",
+            )
+
+    if ts_dataframe is not None:
+        delta_df = build_financials_timeseries_delta_dataframe(ts_dataframe)
+        persist_financials_timeseries_delta_dataframe(delta_df)
+        logger.info(
+            "Timeseries delta persisted to %s",
+            PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
         )
 
     _macro_long_df, macro_wide_df = build_and_persist_macro_timeseries()

@@ -7,7 +7,7 @@ This project downloads financial statement data from official SEC EDGAR JSON API
 The current pipeline builds two outputs:
 
 - **Snapshot dataset** (`financials_<YYYY-MM-DD>.parquet`): one row per company (CIK), with latest annual (`10-K`) values up to the reference date.
-- **Time-series dataset** (`financials_timeseries_<YYYY-MM-DD>.parquet`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings up to the reference date.
+- **Time-series dataset** (`financials_timeseries_<YYYY-MM-DD>.xlsx`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings up to the reference date.
 
 Both datasets include:
 
@@ -19,7 +19,8 @@ The pipeline persists:
 
 - `data/processed/financials_<YYYY-MM-DD>.parquet`
 - `data/processed/financials_sample_max_<N>_<YYYY-MM-DD>.xlsx` (snapshot sample)
-- `data/processed/financials_timeseries_<YYYY-MM-DD>.parquet`
+- `data/processed/financials_timeseries_<YYYY-MM-DD>.xlsx`
+- `data/processed/financials_timeseries_delta_<YYYY-MM-DD>.xlsx` (quarterly deltas vs previous consecutive quarter)
 
 ## Installation
 
@@ -99,7 +100,8 @@ python main.py
 `main.py` builds and saves:
 
 - SEC snapshot dataset (`financials_<YYYY-MM-DD>.parquet`) + sample Excel
-- SEC time-series dataset (`financials_timeseries_<YYYY-MM-DD>.parquet`)
+- SEC time-series dataset (`financials_timeseries_<YYYY-MM-DD>.xlsx`)
+- SEC time-series deltas (`financials_timeseries_delta_<YYYY-MM-DD>.xlsx`)
 - FRED macro time-series dataset (`macro_timeseries_wide_<YYYY-MM-DD>.xlsx`)
 
 ## Example Usage
