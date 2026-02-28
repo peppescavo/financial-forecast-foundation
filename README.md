@@ -72,13 +72,35 @@ Or create a `.env` file in the project root:
 SEC_USER_AGENT="financial-forecast-foundation/1.0 (your_name@company.com)"
 ```
 
+## FRED API Key Setup
+
+FRED requires an API key to download macroeconomic time series.
+
+Create a key: `https://fredaccount.stlouisfed.org/apikeys`
+
+Set it in PowerShell:
+
+```powershell
+$env:FRED_API_KEY="your_fred_api_key"
+```
+
+Or add it to your `.env` file in the project root:
+
+```env
+FRED_API_KEY="your_fred_api_key"
+```
+
 ## How To Run
 
 ```bash
 python main.py
 ```
 
-`main.py` now builds and saves both the snapshot and time-series datasets.
+`main.py` builds and saves:
+
+- SEC snapshot dataset (`financials.parquet`) + sample Excel
+- SEC time-series dataset (`financials_timeseries.parquet`)
+- FRED macro time-series dataset (`macro_timeseries_wide.xlsx`)
 
 ## Example Usage
 
@@ -163,9 +185,11 @@ Financial values are numeric, missing data remains `NaN`, and `as_of_date` is pa
 
 - `src/config.py`: constants, SEC endpoints, headers, field list, path definitions.
 - `src/edgar_client.py`: SEC CIK/ticker universe helpers, thread-safe rate-limited API retrieval, and combined submissions/facts fetch.
+- `src/fred_client.py`: FRED API helper with thread-safe rate limiting.
 - `src/xbrl_parser.py`: extraction of latest annual values plus period/value utilities for 10-K/10-Q time-series assembly.
 - `src/financials.py`: single-company snapshot record and multi-period time-series record builders.
 - `src/pipeline.py`: parallel multi-company orchestration, snapshot/time-series DataFrame construction, type coercion, parquet persistence, and snapshot Excel export.
+- `src/macro_pipeline.py`: FRED macro series download + Excel persistence (wide).
 - `src/utils.py`: logging setup, environment loading, and filesystem helpers.
 - `main.py`: orchestration entrypoint that runs both pipelines.
 - `tests/test_pipeline.py`: pytest coverage for snapshot and time-series pipeline shapes and persistence.
