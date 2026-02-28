@@ -17,13 +17,26 @@ def _select_unit_records(field_payload: dict) -> list[dict]:
     return []
 
 
-def _extract_latest_annual_record(facts: dict, field: str) -> dict | None:
+def _extract_latest_annual_record(
+    facts: dict, field: str, reference_date: str | None = None
+) -> dict | None:
     """Extract the latest annual 10-K record for a us-gaap field."""
     gaap_facts = facts.get("facts", {}).get("us-gaap", {})
     field_payload = gaap_facts.get(field, {})
     records = _select_unit_records(field_payload)
 
-    annual_records = [record for record in records if record.get("form") == "10-K"]
+    annual_records = [
+        record
+        for record in records
+        if record.get("form") == "10-K" and record.get("end")
+    ]
+    if reference_date:
+        cutoff = parse_date(reference_date)
+        annual_records = [
+            record
+            for record in annual_records
+            if parse_date(record.get("end")) <= cutoff
+        ]
     if not annual_records:
         return None
 
@@ -39,9 +52,12 @@ def _extract_latest_annual_record(facts: dict, field: str) -> dict | None:
 def extract_latest_annual_value_and_end_date(
     facts: dict,
     field: str,
+    reference_date: str | None = None,
 ) -> tuple[float, str | None]:
     """Extract latest annual 10-K numeric value and period end date for a field."""
-    latest_record = _extract_latest_annual_record(facts, field)
+    latest_record = _extract_latest_annual_record(
+        facts, field, reference_date=reference_date
+    )
     if latest_record is None:
         return math.nan, None
 
@@ -52,9 +68,13 @@ def extract_latest_annual_value_and_end_date(
     return value, latest_record.get("end")
 
 
-def extract_latest_annual_value(facts: dict, field: str) -> float:
+def extract_latest_annual_value(
+    facts: dict, field: str, reference_date: str | None = None
+) -> float:
     """Extract the latest annual 10-K value for a us-gaap field or return NaN."""
-    value, _ = extract_latest_annual_value_and_end_date(facts, field)
+    value, _ = extract_latest_annual_value_and_end_date(
+        facts, field, reference_date=reference_date
+    )
     return value
 
 

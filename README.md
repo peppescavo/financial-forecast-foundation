@@ -6,8 +6,8 @@ This project downloads financial statement data from official SEC EDGAR JSON API
 
 The current pipeline builds two outputs:
 
-- **Snapshot dataset** (`financials.parquet`): one row per company (CIK), with latest annual (`10-K`) values.
-- **Time-series dataset** (`financials_timeseries.parquet`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings.
+- **Snapshot dataset** (`financials_<YYYY-MM-DD>.parquet`): one row per company (CIK), with latest annual (`10-K`) values up to the reference date.
+- **Time-series dataset** (`financials_timeseries_<YYYY-MM-DD>.parquet`): one row per `(company, period)` using annual (`10-K`) and quarterly (`10-Q`) filings up to the reference date.
 
 Both datasets include:
 
@@ -17,9 +17,9 @@ Both datasets include:
 
 The pipeline persists:
 
-- `data/processed/financials.parquet`
-- `data/processed/financials_sample_max_100.xlsx` (snapshot sample, max 100 rows)
-- `data/processed/financials_timeseries.parquet`
+- `data/processed/financials_<YYYY-MM-DD>.parquet`
+- `data/processed/financials_sample_max_<N>_<YYYY-MM-DD>.xlsx` (snapshot sample)
+- `data/processed/financials_timeseries_<YYYY-MM-DD>.parquet`
 
 ## Installation
 
@@ -72,13 +72,35 @@ Or create a `.env` file in the project root:
 SEC_USER_AGENT="financial-forecast-foundation/1.0 (your_name@company.com)"
 ```
 
+## FRED API Key Setup
+
+FRED requires an API key to download macroeconomic time series.
+
+Create a key: `https://fredaccount.stlouisfed.org/apikeys`
+
+Set it in PowerShell:
+
+```powershell
+$env:FRED_API_KEY="your_fred_api_key"
+```
+
+Or add it to your `.env` file in the project root:
+
+```env
+FRED_API_KEY="your_fred_api_key"
+```
+
 ## How To Run
 
 ```bash
 python main.py
 ```
 
-`main.py` now builds and saves both the snapshot and time-series datasets.
+`main.py` builds and saves:
+
+- SEC snapshot dataset (`financials_<YYYY-MM-DD>.parquet`) + sample Excel
+- SEC time-series dataset (`financials_timeseries_<YYYY-MM-DD>.parquet`)
+- FRED macro time-series dataset (`macro_timeseries_wide_<YYYY-MM-DD>.xlsx`)
 
 ## Example Usage
 
@@ -153,6 +175,15 @@ columns:
 
 Financial values are numeric, missing data remains `NaN`, and `as_of_date` is parsed to datetime.
 
+## Reference Date Cutoff
+
+You can optionally set a global cutoff date (applied to both SEC financials and FRED macro series):
+
+- `.env`: `REFERENCE_DATE="YYYY-MM-DD"`
+- `src/config.py`: set `REFERENCE_DATE = "YYYY-MM-DD"`
+
+If `REFERENCE_DATE` is unset, the pipeline collects up to today and output filenames are suffixed with today’s date.
+
 ## Runtime Behavior
 
 - Company fetch is parallelized with thread pool workers (`SEC_FETCH_MAX_WORKERS`, default `6`).
@@ -163,9 +194,11 @@ Financial values are numeric, missing data remains `NaN`, and `as_of_date` is pa
 
 - `src/config.py`: constants, SEC endpoints, headers, field list, path definitions.
 - `src/edgar_client.py`: SEC CIK/ticker universe helpers, thread-safe rate-limited API retrieval, and combined submissions/facts fetch.
+- `src/fred_client.py`: FRED API helper with thread-safe rate limiting.
 - `src/xbrl_parser.py`: extraction of latest annual values plus period/value utilities for 10-K/10-Q time-series assembly.
 - `src/financials.py`: single-company snapshot record and multi-period time-series record builders.
 - `src/pipeline.py`: parallel multi-company orchestration, snapshot/time-series DataFrame construction, type coercion, parquet persistence, and snapshot Excel export.
+- `src/macro_pipeline.py`: FRED macro series download + Excel persistence (wide).
 - `src/utils.py`: logging setup, environment loading, and filesystem helpers.
 - `main.py`: orchestration entrypoint that runs both pipelines.
 - `tests/test_pipeline.py`: pytest coverage for snapshot and time-series pipeline shapes and persistence.

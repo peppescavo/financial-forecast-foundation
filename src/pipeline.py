@@ -9,6 +9,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from src.config import (
+    EFFECTIVE_REFERENCE_DATE_STR,
     FINANCIAL_FIELDS,
     PROCESSED_FINANCIALS_PATH,
     PROCESSED_FINANCIALS_SAMPLE_PATH,
@@ -28,8 +29,10 @@ def build_financials_dataframe(
     ciks: list[str],
     max_companies: int,
     ticker_lookup: dict[str, str] | None = None,
+    reference_date: str | None = None,
 ) -> pd.DataFrame:
     """Build and persist a standardized financials DataFrame for input CIKs."""
+    cutoff = reference_date or EFFECTIVE_REFERENCE_DATE_STR
     selected_ciks = [normalize_cik(cik) for cik in ciks[:max_companies]]
     normalized_lookup = (
         {normalize_cik(cik): ticker for cik, ticker in ticker_lookup.items()}
@@ -45,6 +48,7 @@ def build_financials_dataframe(
                 build_company_financials,
                 cik,
                 ticker=normalized_lookup.get(cik),
+                reference_date=cutoff,
             ): i
             for i, cik in enumerate(selected_ciks)
         }
@@ -104,8 +108,10 @@ def build_financials_timeseries_dataframe(
     ciks: list[str],
     max_companies: int,
     ticker_lookup: dict[str, str] | None = None,
+    reference_date: str | None = None,
 ) -> pd.DataFrame:
     """Build and persist a long-format DataFrame: one row per (company, period)."""
+    cutoff = reference_date or EFFECTIVE_REFERENCE_DATE_STR
     selected_ciks = [normalize_cik(cik) for cik in ciks[:max_companies]]
     normalized_lookup = (
         {normalize_cik(cik): ticker for cik, ticker in ticker_lookup.items()}
@@ -121,6 +127,7 @@ def build_financials_timeseries_dataframe(
                 build_company_financials_timeseries,
                 cik,
                 ticker=normalized_lookup.get(cik),
+                reference_date=cutoff,
             ): cik
             for cik in selected_ciks
         }
