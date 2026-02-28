@@ -14,6 +14,7 @@ from src.config import (
     PROCESSED_FINANCIALS_PATH,
     PROCESSED_FINANCIALS_SAMPLE_PATH,
     PROCESSED_FINANCIALS_TIMESERIES_PATH,
+    PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
     SAMPLE_MAX_ROWS,
     SEC_FETCH_MAX_WORKERS,
     SUBMISSION_STATIC_FIELDS,
@@ -166,7 +167,12 @@ def build_financials_timeseries_dataframe(
     df[FINANCIAL_FIELDS] = df[FINANCIAL_FIELDS].apply(pd.to_numeric, errors="coerce")
 
     ensure_directory(PROCESSED_FINANCIALS_TIMESERIES_PATH.parent)
-    df.to_parquet(PROCESSED_FINANCIALS_TIMESERIES_PATH, engine="pyarrow")
+    df.to_excel(
+        PROCESSED_FINANCIALS_TIMESERIES_PATH,
+        engine="openpyxl",
+        index=False,
+        sheet_name="timeseries",
+    )
 
     logger.info(
         "Saved financials timeseries (shape=%s) to %s",
@@ -174,3 +180,78 @@ def build_financials_timeseries_dataframe(
         PROCESSED_FINANCIALS_TIMESERIES_PATH,
     )
     return df
+
+
+def build_financials_timeseries_delta_dataframe(
+    timeseries_df: pd.DataFrame,
+    *,
+    tolerance_days: int = 20,
+) -> pd.DataFrame:
+    """Build a delta DataFrame from a (company, period) financials time series.
+
+    The delta dataset contains one row per pair of consecutive quarterly period ends
+    (no gaps). Financial values are computed as (current - previous).
+    """
+    output_columns = [
+        "cik",
+        "ticker",
+        "as_of_date",
+        "as_of_date_prev",
+        *SUBMISSION_STATIC_FIELDS,
+        *FINANCIAL_FIELDS,
+    ]
+    if timeseries_df.empty:
+        return pd.DataFrame(columns=output_columns)
+
+    df = timeseries_df.copy()
+    df["as_of_date"] = pd.to_datetime(df["as_of_date"], errors="coerce")
+    df = df.dropna(subset=["cik", "as_of_date"]).copy()
+    if df.empty:
+        return pd.DataFrame(columns=output_columns)
+
+    df = df.sort_values(["cik", "as_of_date"], kind="stable").reset_index(drop=True)
+    grouped = df.groupby("cik", sort=False)
+    prev_dates = grouped["as_of_date"].shift(1)
+
+    expected_current_dates = prev_dates + pd.DateOffset(months=3)
+    gap_days = (df["as_of_date"] - prev_dates).dt.days
+    is_prev_quarter = (
+        prev_dates.notna()
+        & (df["as_of_date"] > prev_dates)
+        & (df["as_of_date"] - expected_current_dates).abs().dt.days.le(tolerance_days)
+        & gap_days.between(70, 110)
+    )
+
+    prev_values = grouped[FINANCIAL_FIELDS].shift(1)
+    delta_values = df[FINANCIAL_FIELDS] - prev_values
+
+    delta_df = df.loc[
+        is_prev_quarter, ["cik", "ticker", "as_of_date", *SUBMISSION_STATIC_FIELDS]
+    ].copy()
+    delta_df["as_of_date_prev"] = prev_dates.loc[is_prev_quarter].to_numpy()
+    delta_df[FINANCIAL_FIELDS] = delta_values.loc[
+        is_prev_quarter, FINANCIAL_FIELDS
+    ].to_numpy()
+    delta_df["as_of_date_prev"] = pd.to_datetime(
+        delta_df["as_of_date_prev"], errors="coerce"
+    )
+    delta_df[FINANCIAL_FIELDS] = delta_df[FINANCIAL_FIELDS].apply(
+        pd.to_numeric, errors="coerce"
+    )
+    delta_df = delta_df.reindex(columns=output_columns)
+    return delta_df
+
+
+def persist_financials_timeseries_delta_dataframe(delta_df: pd.DataFrame) -> None:
+    ensure_directory(PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH.parent)
+    delta_df.to_excel(
+        PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
+        engine="openpyxl",
+        index=False,
+        sheet_name="delta",
+    )
+    logger.info(
+        "Saved financials timeseries delta (shape=%s) to %s",
+        delta_df.shape,
+        PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
+    )

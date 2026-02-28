@@ -38,6 +38,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Office / LibreOffice lock files
+.~lock.*
+
 # Environment files
 .env
 .env.*
