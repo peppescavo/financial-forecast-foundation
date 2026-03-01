@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import date, datetime
 from pathlib import Path
@@ -121,7 +122,7 @@ FRED_DEFAULT_SERIES: dict[str, str] = {
     "DTWEXBGS": "Trade Weighted U.S. Dollar Index: Broad",
 }
 
-FINANCIAL_FIELDS = [
+FINANCIAL_FIELDS_DEFAULT = [
     "Revenues",
     "NetIncomeLoss",
     "Assets",
@@ -133,6 +134,19 @@ FINANCIAL_FIELDS = [
     "CashAndCashEquivalentsAtCarryingValue",
     "LongTermDebt",
 ]
+
+# Curated macro list from discovery (scripts/discover_us_gaap_concepts.py).
+# If present, FINANCIAL_FIELDS is loaded from it; else FINANCIAL_FIELDS_DEFAULT is used.
+MACRO_FINANCIAL_CONCEPTS_PATH = RAW_DATA_DIR / "macro_financial_concepts.json"
+
+if MACRO_FINANCIAL_CONCEPTS_PATH.exists():
+    with open(MACRO_FINANCIAL_CONCEPTS_PATH) as f:
+        _loaded = json.load(f)
+    FINANCIAL_FIELDS = (
+        list(_loaded) if isinstance(_loaded, list) else FINANCIAL_FIELDS_DEFAULT
+    )
+else:
+    FINANCIAL_FIELDS = FINANCIAL_FIELDS_DEFAULT.copy()
 
 # Map output field names to one or more us-gaap concept names to try (first with data wins).
 # SEC companyfacts uses exact taxonomy concept names; EBITDA/EBIT are often missing or use longer names.
