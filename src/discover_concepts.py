@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -105,6 +106,22 @@ def run_discovery(
     }
     with open(output_path, "w") as f:
         json.dump(out, f, indent=2)
+
+    # Write analysis file: all concepts with coverage and empty keep/mapped_name for manual curation
+    analysis_path = output_path.parent / "us_gaap_concepts_for_analysis.csv"
+    with open(analysis_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["concept", "company_count", "pct", "keep", "mapped_name"])
+        for item in out["concepts"]:
+            writer.writerow(
+                [
+                    item["concept"],
+                    item["company_count"],
+                    item["pct"],
+                    "1",
+                    "",
+                ]
+            )
     return output_path
 
 
