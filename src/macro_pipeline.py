@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
@@ -115,6 +116,77 @@ def build_macro_timeseries_wide_dataframe(long_df: pd.DataFrame) -> pd.DataFrame
     return wide_df
 
 
+def build_macro_timeseries_quarterly_wide_dataframe(
+    wide_df: pd.DataFrame,
+    *,
+    agg: str = "last",
+) -> pd.DataFrame:
+    """Resample wide macro series to quarter-end frequency (calendar quarters).
+
+    Parameters
+    ----------
+    agg:
+        Aggregation within each quarter. Supported: "last", "mean".
+    """
+    if wide_df.empty:
+        return pd.DataFrame()
+
+    df = wide_df.copy()
+    if "date" in df.columns and not isinstance(df.index, pd.DatetimeIndex):
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df = df.dropna(subset=["date"]).set_index("date")
+
+    if not isinstance(df.index, pd.DatetimeIndex):
+        raise TypeError("wide_df must have a DatetimeIndex (or a 'date' column)")
+
+    df = df.sort_index()
+    resampler = df.resample("QE")
+    if agg == "last":
+        quarterly_df = resampler.last()
+    elif agg == "mean":
+        quarterly_df = resampler.mean()
+    else:
+        raise ValueError("agg must be one of: 'last', 'mean'")
+    quarterly_df.columns.name = None
+    return quarterly_df
+
+
+def build_macro_timeseries_quarterly_delta_dataframe(
+    quarterly_wide_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Compute first differences of a quarterly wide macro dataset (t - t-1)."""
+    if quarterly_wide_df.empty:
+        return pd.DataFrame()
+    delta_df = quarterly_wide_df.diff()
+    delta_df.columns.name = None
+    return delta_df
+
+
+def _persist_wide_excel(
+    out_path: Path,
+    wide_df: pd.DataFrame,
+    *,
+    sheet_name: str,
+) -> None:
+    if wide_df.empty:
+        return
+
+    ensure_directory(out_path.parent)
+    wide_out_df = wide_df.reset_index()
+    if "date" in wide_out_df.columns:
+        wide_out_df["date"] = pd.to_datetime(wide_out_df["date"], errors="coerce")
+    with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+        wide_out_df.to_excel(writer, index=False, sheet_name=sheet_name)
+        if "date" in wide_out_df.columns:
+            from openpyxl.utils import get_column_letter
+
+            date_col_idx = wide_out_df.columns.get_loc("date") + 1
+            date_col_letter = get_column_letter(date_col_idx)
+            ws = writer.book[sheet_name]
+            for row in range(2, ws.max_row + 1):
+                ws[f"{date_col_letter}{row}"].number_format = "yyyy-mm-dd"
+
+
 def build_and_persist_macro_timeseries(
     series_ids: list[str] | None = None,
     observation_start: str | None = None,
@@ -131,23 +203,67 @@ def build_and_persist_macro_timeseries(
     if wide_df.empty:
         return long_df, wide_df
 
-    ensure_directory(config.PROCESSED_MACRO_WIDE_PATH.parent)
-    wide_out_df = wide_df.reset_index()
-    if "date" in wide_out_df.columns:
-        wide_out_df["date"] = pd.to_datetime(wide_out_df["date"], errors="coerce")
-    with pd.ExcelWriter(
+    _persist_wide_excel(
         config.PROCESSED_MACRO_WIDE_PATH,
-        engine="openpyxl",
-    ) as writer:
-        wide_out_df.to_excel(writer, index=False, sheet_name="macro")
-        if "date" in wide_out_df.columns:
-            from openpyxl.utils import get_column_letter
-
-            date_col_idx = wide_out_df.columns.get_loc("date") + 1
-            date_col_letter = get_column_letter(date_col_idx)
-            ws = writer.book["macro"]
-            for row in range(2, ws.max_row + 1):
-                ws[f"{date_col_letter}{row}"].number_format = "yyyy-mm-dd"
-
+        wide_df,
+        sheet_name="macro",
+    )
     logger.info("Saved macro wide to %s", config.PROCESSED_MACRO_WIDE_PATH)
+
+    quarterly_wide_df = build_macro_timeseries_quarterly_wide_dataframe(
+        wide_df, agg="last"
+    )
+    if not quarterly_wide_df.empty:
+        _persist_wide_excel(
+            config.PROCESSED_MACRO_QUARTERLY_WIDE_PATH,
+            quarterly_wide_df,
+            sheet_name="macro_quarterly",
+        )
+        logger.info(
+            "Saved macro quarterly wide to %s",
+            config.PROCESSED_MACRO_QUARTERLY_WIDE_PATH,
+        )
+
+        quarterly_delta_df = build_macro_timeseries_quarterly_delta_dataframe(
+            quarterly_wide_df
+        )
+        if not quarterly_delta_df.empty:
+            _persist_wide_excel(
+                config.PROCESSED_MACRO_QUARTERLY_DELTA_PATH,
+                quarterly_delta_df,
+                sheet_name="macro_quarterly_delta",
+            )
+            logger.info(
+                "Saved macro quarterly delta to %s",
+                config.PROCESSED_MACRO_QUARTERLY_DELTA_PATH,
+            )
+
+    quarterly_wide_mean_df = build_macro_timeseries_quarterly_wide_dataframe(
+        wide_df, agg="mean"
+    )
+    if not quarterly_wide_mean_df.empty:
+        _persist_wide_excel(
+            config.PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH,
+            quarterly_wide_mean_df,
+            sheet_name="macro_quarterly_mean",
+        )
+        logger.info(
+            "Saved macro quarterly wide mean to %s",
+            config.PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH,
+        )
+
+        quarterly_delta_mean_df = build_macro_timeseries_quarterly_delta_dataframe(
+            quarterly_wide_mean_df
+        )
+        if not quarterly_delta_mean_df.empty:
+            _persist_wide_excel(
+                config.PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH,
+                quarterly_delta_mean_df,
+                sheet_name="macro_quarterly_delta_mean",
+            )
+            logger.info(
+                "Saved macro quarterly delta mean to %s",
+                config.PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH,
+            )
+
     return long_df, wide_df
