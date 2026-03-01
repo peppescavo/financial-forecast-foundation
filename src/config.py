@@ -134,5 +134,20 @@ FINANCIAL_FIELDS = [
     "LongTermDebt",
 ]
 
+# Map output field names to one or more us-gaap concept names to try (first with data wins).
+# SEC companyfacts uses exact taxonomy concept names; EBITDA/EBIT are often missing or use longer names.
+FINANCIAL_FIELD_CONCEPTS: dict[str, list[str]] = {
+    "EBIT": [
+        "EBIT",
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxes",
+        "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest",
+    ],
+    "EBITDA": [
+        "EBITDA",
+        "EarningsBeforeInterestTaxesDepreciationAndAmortization",
+    ],
+}
+# All other FINANCIAL_FIELDS use the field name as the single us-gaap concept.
+
 # Static company metadata from SEC submissions (name, industry, region only)
 SUBMISSION_STATIC_FIELDS = ["company_name", "industry", "region"]
