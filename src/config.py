@@ -61,6 +61,22 @@ PROCESSED_FINANCIALS_SAMPLE_PATH = (
 PROCESSED_MACRO_WIDE_PATH = (
     PROCESSED_DATA_DIR / f"macro_timeseries_wide_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
 )
+PROCESSED_MACRO_QUARTERLY_WIDE_PATH = (
+    PROCESSED_DATA_DIR
+    / f"macro_timeseries_quarterly_wide_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
+)
+PROCESSED_MACRO_QUARTERLY_DELTA_PATH = (
+    PROCESSED_DATA_DIR
+    / f"macro_timeseries_quarterly_delta_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
+)
+PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH = (
+    PROCESSED_DATA_DIR
+    / f"macro_timeseries_quarterly_wide_mean_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
+)
+PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH = (
+    PROCESSED_DATA_DIR
+    / f"macro_timeseries_quarterly_delta_mean_{EFFECTIVE_REFERENCE_DATE_STR}.xlsx"
+)
 
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 SEC_COMPANY_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"

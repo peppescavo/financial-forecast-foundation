@@ -103,6 +103,10 @@ python main.py
 - SEC time-series dataset (`financials_timeseries_<YYYY-MM-DD>.xlsx`)
 - SEC time-series deltas (`financials_timeseries_delta_<YYYY-MM-DD>.xlsx`)
 - FRED macro time-series dataset (`macro_timeseries_wide_<YYYY-MM-DD>.xlsx`)
+- FRED macro quarterly time-series (`macro_timeseries_quarterly_wide_<YYYY-MM-DD>.xlsx`, resampled `QE` + `last`)
+- FRED macro quarterly deltas (`macro_timeseries_quarterly_delta_<YYYY-MM-DD>.xlsx`, first differences)
+- FRED macro quarterly time-series mean (`macro_timeseries_quarterly_wide_mean_<YYYY-MM-DD>.xlsx`, resampled `QE` + `mean`)
+- FRED macro quarterly deltas mean (`macro_timeseries_quarterly_delta_mean_<YYYY-MM-DD>.xlsx`, first differences)
 
 ## Example Usage
 
