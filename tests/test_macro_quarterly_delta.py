@@ -51,7 +51,7 @@ def test_build_macro_timeseries_quarterly_wide_dataframe_resample_qe_mean() -> N
     assert quarterly_df.loc[pd.Timestamp("2025-06-30"), "GDPC1"] == 6.0
 
 
-def test_build_macro_timeseries_quarterly_delta_dataframe_diff() -> None:
+def test_build_macro_timeseries_quarterly_delta_dataframe_pct_change() -> None:
     quarterly_wide_df = pd.DataFrame(
         {"GDPC1": [2.0, 6.0], "UNRATE": [4.1, 4.3]},
         index=pd.to_datetime(["2025-03-31", "2025-06-30"], errors="coerce"),
@@ -61,5 +61,5 @@ def test_build_macro_timeseries_quarterly_delta_dataframe_diff() -> None:
     delta_df = build_macro_timeseries_quarterly_delta_dataframe(quarterly_wide_df)
 
     assert pd.isna(delta_df.loc[pd.Timestamp("2025-03-31"), "GDPC1"])
-    assert delta_df.loc[pd.Timestamp("2025-06-30"), "GDPC1"] == 4.0
-    assert delta_df.loc[pd.Timestamp("2025-06-30"), "UNRATE"] == 4.3 - 4.1
+    assert delta_df.loc[pd.Timestamp("2025-06-30"), "GDPC1"] == (6.0 - 2.0) / 2.0
+    assert delta_df.loc[pd.Timestamp("2025-06-30"), "UNRATE"] == (4.3 - 4.1) / 4.1

@@ -86,7 +86,7 @@ SEC_TIMEOUT_SECONDS = 30
 # SEC allows 10 requests/second; rate limiter used when fetching in parallel
 SEC_MAX_REQUESTS_PER_SECOND = 10
 SEC_FETCH_MAX_WORKERS = 6  # parallel company fetches (each company = 2 requests)
-DEFAULT_MAX_COMPANIES = 1000
+DEFAULT_MAX_COMPANIES = 5000
 
 SEC_USER_AGENT = os.getenv(
     "SEC_USER_AGENT",
