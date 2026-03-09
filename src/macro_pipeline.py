@@ -154,11 +154,11 @@ def build_macro_timeseries_quarterly_wide_dataframe(
 def build_macro_timeseries_quarterly_delta_dataframe(
     quarterly_wide_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Compute percent change of a quarterly wide macro dataset: (t - t-1) / t-1."""
+    """Compute percent change of a quarterly wide macro dataset."""
     if quarterly_wide_df.empty:
         return pd.DataFrame()
     prev = quarterly_wide_df.shift(1)
-    delta_df = (quarterly_wide_df - prev) / prev
+    delta_df = (quarterly_wide_df - prev) / prev * 100.0
     delta_df = delta_df.mask(prev == 0)
     delta_df.columns.name = None
     return delta_df

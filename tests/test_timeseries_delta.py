@@ -42,11 +42,11 @@ def test_build_financials_timeseries_delta_dataframe_requires_consecutive_quarte
     assert len(cik1) == 1
     assert cik1.iloc[0]["as_of_date"] == pd.Timestamp("2025-06-30")
     assert cik1.iloc[0]["as_of_date_prev"] == pd.Timestamp("2025-03-31")
-    assert cik1.iloc[0][FINANCIAL_FIELDS[0]] == (11.0 - 10.0) / 10.0
+    assert cik1.iloc[0][FINANCIAL_FIELDS[0]] == ((11.0 - 10.0) / 10.0) * 100.0
 
     # cik=2: fiscal-ish quarter ends still qualify within tolerance.
     cik2 = delta_df[delta_df["cik"] == "0000000002"].sort_values("as_of_date")
     assert len(cik2) == 1
     assert cik2.iloc[0]["as_of_date"] == pd.Timestamp("2025-06-29")
     assert cik2.iloc[0]["as_of_date_prev"] == pd.Timestamp("2025-03-30")
-    assert cik2.iloc[0][FINANCIAL_FIELDS[0]] == (101.0 - 100.0) / 100.0
+    assert cik2.iloc[0][FINANCIAL_FIELDS[0]] == ((101.0 - 100.0) / 100.0) * 100.0
