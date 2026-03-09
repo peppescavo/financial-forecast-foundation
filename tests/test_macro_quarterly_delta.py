@@ -61,5 +61,10 @@ def test_build_macro_timeseries_quarterly_delta_dataframe_pct_change() -> None:
     delta_df = build_macro_timeseries_quarterly_delta_dataframe(quarterly_wide_df)
 
     assert pd.isna(delta_df.loc[pd.Timestamp("2025-03-31"), "GDPC1"])
-    assert delta_df.loc[pd.Timestamp("2025-06-30"), "GDPC1"] == (6.0 - 2.0) / 2.0
-    assert delta_df.loc[pd.Timestamp("2025-06-30"), "UNRATE"] == (4.3 - 4.1) / 4.1
+    assert (
+        delta_df.loc[pd.Timestamp("2025-06-30"), "GDPC1"] == ((6.0 - 2.0) / 2.0) * 100.0
+    )
+    assert (
+        delta_df.loc[pd.Timestamp("2025-06-30"), "UNRATE"]
+        == ((4.3 - 4.1) / 4.1) * 100.0
+    )

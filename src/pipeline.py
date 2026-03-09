@@ -190,7 +190,7 @@ def build_financials_timeseries_delta_dataframe(
     """Build a delta DataFrame from a (company, period) financials time series.
 
     The delta dataset contains one row per pair of consecutive quarterly period ends
-    (no gaps). Financial values are computed as percent change: (current - previous) / previous.
+    (no gaps). Financial values are computed as percent change: (current - previous) / previous * 100.
     """
     output_columns = [
         "cik",
@@ -223,7 +223,7 @@ def build_financials_timeseries_delta_dataframe(
     )
 
     prev_values = grouped[FINANCIAL_FIELDS].shift(1)
-    delta_values = (df[FINANCIAL_FIELDS] - prev_values) / prev_values
+    delta_values = (df[FINANCIAL_FIELDS] - prev_values) / prev_values * 100.0
     delta_values = delta_values.mask(prev_values == 0)
 
     delta_df = df.loc[
