@@ -15,6 +15,10 @@ from src.config import (
     PROCESSED_FINANCIALS_TIMESERIES_PATH,
     PROCESSED_FINANCIALS_TIMESERIES_DELTA_PATH,
     PROCESSED_MACRO_WIDE_PATH,
+    PROCESSED_MACRO_QUARTERLY_WIDE_PATH,
+    PROCESSED_MACRO_QUARTERLY_DELTA_PATH,
+    PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH,
+    PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH,
     SAMPLE_MAX_ROWS,
 )
 from src.edgar_client import fetch_cik_universe_with_tickers
@@ -119,6 +123,26 @@ def main() -> None:
     if not macro_wide_df.empty:
         logger.info("Built macro wide dataframe with shape=%s", macro_wide_df.shape)
         logger.info("Macro wide persisted to %s", PROCESSED_MACRO_WIDE_PATH)
+        if PROCESSED_MACRO_QUARTERLY_WIDE_PATH.exists():
+            logger.info(
+                "Macro quarterly wide persisted to %s",
+                PROCESSED_MACRO_QUARTERLY_WIDE_PATH,
+            )
+        if PROCESSED_MACRO_QUARTERLY_DELTA_PATH.exists():
+            logger.info(
+                "Macro quarterly delta persisted to %s",
+                PROCESSED_MACRO_QUARTERLY_DELTA_PATH,
+            )
+        if PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH.exists():
+            logger.info(
+                "Macro quarterly wide mean persisted to %s",
+                PROCESSED_MACRO_QUARTERLY_WIDE_MEAN_PATH,
+            )
+        if PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH.exists():
+            logger.info(
+                "Macro quarterly delta mean persisted to %s",
+                PROCESSED_MACRO_QUARTERLY_DELTA_MEAN_PATH,
+            )
 
 
 if __name__ == "__main__":
